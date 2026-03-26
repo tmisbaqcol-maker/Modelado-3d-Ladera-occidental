@@ -68,7 +68,7 @@ def render_html_file(path, height=820):
 # -------------------------------------------------------
 # UI
 # -------------------------------------------------------
-st.title("Dashboard 3D – Análisis de Deslizamientos")
+st.title("Ladera occidental – Análisis de Deslizamientos - Localidad Suroccidente")
 
 tab_names = list(TAB_FILES.keys())
 tabs = st.tabs(tab_names)
