@@ -1,67 +1,83 @@
 import os
 import glob
+import html
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(layout="wide")
-st.title("DASHBOARD 3D – ANÁLISIS DE DESLIZAMIENTOS")
+st.set_page_config(page_title="Dashboard 3D - Deslizamientos", layout="wide")
 
-def find_html(preferred_names):
-    for name in preferred_names:
+# -------------------------------------------------------
+# CONFIG
+# -------------------------------------------------------
+TAB_FILES = {
+    "Desplazamiento 2011–2023": [
+        "superficie_3d_desplazamiento.html",
+        "superficie_3d_desplazamiento (3).html",
+    ],
+    "Ladera Occidental – Riesgo": [
+        "modelo_3d_ladera_riesgo.html",
+    ],
+    "Modelo por Barrio": [
+        "modelo_terreno_3d_filtrado_por_barrio_con_label_elevado.html",
+    ],
+}
+
+TAB_HEIGHT = 820
+
+# -------------------------------------------------------
+# HELPERS
+# -------------------------------------------------------
+def find_html(candidates):
+    for name in candidates:
         if os.path.exists(name):
             return name
 
     html_files = glob.glob("*.html")
-    for name in preferred_names:
-        base = name.replace(".html", "").lower()
-        for f in html_files:
-            if base in f.lower():
+    candidate_bases = [c.replace(".html", "").lower() for c in candidates]
+
+    for f in html_files:
+        fl = f.lower()
+        for base in candidate_bases:
+            if base in fl:
                 return f
     return None
 
-def load_html(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
+def load_html(path):
+    with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
-tab1, tab2, tab3 = st.tabs([
-    "Desplazamiento 2011–2023",
-    "Ladera Occidental – Riesgo",
-    "Modelo por Barrio"
-])
+def render_html_file(path, height=820):
+    if not path:
+        st.error("No se encontró el archivo HTML correspondiente.")
+        return
 
-file_tab1 = find_html([
-    "superficie_3d_desplazamiento.html",
-    "superficie_3d_desplazamiento (3).html"
-])
+    raw_html = load_html(path)
+    escaped_html = html.escape(raw_html, quote=True)
 
-file_tab2 = find_html([
-    "modelo_3d_ladera_riesgo.html"
-])
+    iframe = f"""
+    <iframe
+        srcdoc="{escaped_html}"
+        width="100%"
+        height="{height}"
+        style="border:none; overflow:hidden;"
+        sandbox="allow-scripts allow-same-origin allow-downloads allow-popups"
+    ></iframe>
+    """
+    components.html(iframe, height=height, scrolling=False)
 
-file_tab3 = find_html([
-    "modelo_terreno_3d_filtrado_por_barrio_con_label_elevado.html"
-])
+# -------------------------------------------------------
+# UI
+# -------------------------------------------------------
+st.title("Dashboard 3D – Análisis de Deslizamientos")
 
-with tab1:
-    st.subheader("Superficie 3D de Desplazamiento")
-    if file_tab1:
-        components.html(load_html(file_tab1), height=720, scrolling=True)
-    else:
-        st.error("No se encontró el archivo HTML de la pestaña 1.")
+tab_names = list(TAB_FILES.keys())
+tabs = st.tabs(tab_names)
 
-with tab2:
-    st.subheader("Modelo de Ladera Occidental con Riesgo")
-    if file_tab2:
-        components.html(load_html(file_tab2), height=720, scrolling=True)
-    else:
-        st.error("No se encontró el archivo HTML de la pestaña 2.")
+for tab, tab_name in zip(tabs, tab_names):
+    with tab:
+        file_path = find_html(TAB_FILES[tab_name])
+        st.subheader(tab_name)
+        render_html_file(file_path, height=TAB_HEIGHT)
 
-with tab3:
-    st.subheader("Modelo 3D Filtrado por Barrio")
-    if file_tab3:
-        components.html(load_html(file_tab3), height=720, scrolling=True)
-    else:
-        st.error("No se encontró el archivo HTML de la pestaña 3.")
-
-with st.expander("Ver archivos detectados en el repositorio"):
+with st.expander("Ver archivos detectados"):
     st.write(sorted(os.listdir(".")))
